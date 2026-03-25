@@ -1,0 +1,7 @@
+.env
+venv/
+twilio/
+__pycache__/
+*.pyc
+.env
+*.log

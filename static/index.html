@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Phone</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; }
+    .container { max-width: 420px; margin: 40px auto; }
+    h1 { font-size: 28px; margin-bottom: 30px; }
+    #status { 
+      font-size: 20px; padding: 20px; background: #1e2937; border-radius: 12px; 
+      margin: 20px 0; min-height: 70px; display: flex; align-items: center; justify-content: center;
+    }
+    button { 
+      background: #22c55e; color: white; border: none; padding: 18px 40px; 
+      font-size: 20px; border-radius: 12px; margin: 10px; cursor: pointer; width: 100%; max-width: 280px;
+    }
+    .disconnect-btn { background: #ef4444; }
+    #log { margin-top: 30px; text-align: left; font-size: 14px; background: #1e2937; padding: 15px; border-radius: 12px; max-height: 220px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🇮🇷 Family Phone 🇬🇧</h1>
+    
+    <div id="status">🔴 Disconnected - Click Connect</div>
+    
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+
+    <div id="log">Log will appear here...</div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const logEl = document.getElementById('log');
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    connectBtn.addEventListener('click', async () => {
+      connectBtn.disabled = true;
+      statusEl.textContent = "Connecting to Twilio...";
+      log("Attempting to connect...");
+
+      try {
+        const res = await fetch('/token');
+        if (!res.ok) throw new Error("Token failed");
+        await res.json();
+
+        statusEl.innerHTML = "✅ Connected successfully!<br><br>Token is working.<br><br>Now buy a UK number to receive calls.";
+        disconnectBtn.style.display = 'inline-block';
+        log("✅ Token received successfully");
+
+      } catch (err) {
+        statusEl.textContent = "❌ Error: " + err.message;
+        log("Error: " + err.message);
+        connectBtn.disabled = false;
+      }
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+      statusEl.textContent = "🔴 Disconnected";
+      connectBtn.disabled = false;
+      disconnectBtn.style.display = 'none';
+      log("Disconnected by user");
+    });
+  </script>
+</body>
+</html>
