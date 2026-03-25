@@ -11,16 +11,15 @@ load_dotenv()
 
 app = FastAPI()
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
+# API Routes must come BEFORE static mount
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 API_KEY_SID = os.getenv("TWILIO_API_KEY_SID")
 API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.get("/token")
 async def get_token():
-    if not all([ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET]):
-        return JSONResponse({"error": "Missing environment variables"}, status_code=500)
+    if not ACCOUNT_SID or not API_KEY_SID or not API_KEY_SECRET:
+        return JSONResponse({"error": "Missing Twilio credentials"}, status_code=500)
     
     try:
         token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
@@ -37,6 +36,9 @@ async def voice_webhook(request: Request):
     dial.client("friend_uk")
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
+
+# Serve static files (MUST be after routes)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
