@@ -11,7 +11,6 @@ load_dotenv()
 
 app = FastAPI()
 
-# Serve frontend
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
@@ -20,16 +19,22 @@ API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.get("/token")
 async def get_token():
-    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
-    voice_grant = VoiceGrant(incoming_allow=True)
-    token.add_grant(voice_grant)
-    return JSONResponse({"token": token.to_jwt()})
+    if not all([ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET]):
+        return JSONResponse({"error": "Missing environment variables"}, status_code=500)
+    
+    try:
+        token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
+        voice_grant = VoiceGrant(incoming_allow=True)
+        token.add_grant(voice_grant)
+        return JSONResponse({"token": token.to_jwt()})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.post("/voice")
 async def voice_webhook(request: Request):
     response = VoiceResponse()
     dial = Dial()
-    dial.client("friend_uk")           # This must match the identity above
+    dial.client("friend_uk")
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
 
