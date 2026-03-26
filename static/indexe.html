@@ -3,39 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Family Phone</title>
-  <script src="https://sdk.twilio.com/js/voice/v2/twilio.min.js" crossorigin="anonymous"></script>
+  <title>Iran-UK Family Phone</title>
+  <script src="https://sdk.twilio.com/js/voice/v2/twilio.min.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; }
-    .container { max-width: 400px; margin: 40px auto; }
-    h1 { margin: 0 0 30px; font-size: 28px; }
-    #status { font-size: 18px; margin: 20px 0; padding: 15px; border-radius: 12px; background: #1e2937; }
-    button { background: #22c55e; color: white; border: none; padding: 16px 32px; font-size: 18px; border-radius: 12px; margin: 10px; cursor: pointer; width: 200px; }
+    .container { max-width: 420px; margin: 40px auto; }
+    h1 { font-size: 28px; margin-bottom: 30px; }
+    #status { font-size: 20px; padding: 20px; background: #1e2937; border-radius: 12px; margin: 20px 0; min-height: 70px; }
+    button { background: #22c55e; color: white; border: none; padding: 18px 40px; font-size: 20px; border-radius: 12px; margin: 10px; cursor: pointer; width: 100%; max-width: 280px; }
     button:disabled { background: #64748b; }
-    .call-btn { background: #ef4444; }
-    #log { margin-top: 30px; text-align: left; font-size: 14px; background: #1e2937; padding: 15px; border-radius: 12px; max-height: 200px; overflow-y: auto; }
+    .red { background: #ef4444; }
+    #log { margin-top: 30px; text-align: left; font-size: 14px; background: #1e2937; padding: 15px; border-radius: 12px; max-height: 220px; overflow-y: auto; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🇮🇷 Family Phone 🇬🇧</h1>
+    
     <div id="status">🔴 Disconnected - Click Connect</div>
     
     <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn" style="display:none;" class="call-btn">Disconnect</button>
+    <button id="disconnectBtn" class="red" style="display:none;">Disconnect</button>
 
     <div id="incoming" style="display:none; margin-top:20px;">
       <p><strong>📞 Incoming call from Iran!</strong></p>
       <button id="answerBtn">Answer</button>
-      <button id="rejectBtn" class="call-btn">Reject</button>
+      <button id="rejectBtn" class="red">Reject</button>
     </div>
 
-    <div id="log">Call log will appear here...</div>
+    <div id="log">Log will appear here...</div>
   </div>
 
-    <script>
+  <script>
     let device = null;
     let currentCall = null;
+
     const statusEl = document.getElementById('status');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
@@ -52,34 +54,25 @@
       connectBtn.disabled = true;
       statusEl.textContent = "Connecting...";
 
-      // Make sure Twilio SDK is loaded
-      if (typeof Twilio === 'undefined' || !Twilio.Device) {
-        statusEl.textContent = "❌ Twilio SDK not loaded. Refresh page.";
-        connectBtn.disabled = false;
-        return;
-      }
-
       try {
         const res = await fetch('/token');
-        if (!res.ok) throw new Error("Token request failed");
+        if (!res.ok) throw new Error("Token failed");
         const data = await res.json();
 
-        device = new Twilio.Device(data.token, { 
-          codecPreferences: ['opus', 'pcmu'] 
-        });
+        device = new Twilio.Device(data.token);
 
         device.on('ready', () => {
           statusEl.innerHTML = "✅ Ready - Waiting for call from Iran";
           connectBtn.style.display = 'none';
           disconnectBtn.style.display = 'inline-block';
-          log("✅ Device registered successfully");
+          log("✅ Device ready");
         });
 
         device.on('incoming', (call) => {
           currentCall = call;
           incomingEl.style.display = 'block';
           statusEl.textContent = "📞 Incoming call from Iran!";
-          log("📞 Incoming call detected");
+          log("📞 Incoming call");
         });
 
         device.on('error', (err) => {
@@ -90,7 +83,7 @@
         device.register();
 
       } catch (err) {
-        statusEl.textContent = "❌ Failed to connect - " + err.message;
+        statusEl.textContent = "❌ Failed to connect";
         log("Connection error: " + err);
         connectBtn.disabled = false;
       }
@@ -102,7 +95,7 @@
       connectBtn.style.display = 'inline-block';
       disconnectBtn.style.display = 'none';
       incomingEl.style.display = 'none';
-      log("Device disconnected");
+      log("Disconnected");
     });
 
     document.getElementById('answerBtn').addEventListener('click', () => {
