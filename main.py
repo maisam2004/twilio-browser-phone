@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+'''from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from twilio.jwt.access_token import AccessToken
@@ -41,6 +41,33 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def serve_index():
     with open("static/index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)'''
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from twilio.twiml.voice_response import VoiceResponse, Dial
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = FastAPI()
+
+# Serve frontend
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.post("/voice")
+async def voice_webhook(request: Request):
+    response = VoiceResponse()
+    dial = Dial()
+    # Forward incoming call to SIP client
+    dial.sip("sip:friend_uk@family-voip.sip.us1.twilio.com")
+    response.append(dial)
+    return HTMLResponse(str(response), media_type="application/xml")
 
 if __name__ == "__main__":
     import uvicorn
