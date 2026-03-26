@@ -56,71 +56,56 @@
       logEl.scrollTop = logEl.scrollHeight;
     }
 
-    connectBtn.addEventListener('click', async () => {
-      connectBtn.disabled = true;
-      statusEl.textContent = "Connecting to Twilio...";
-
-      try {
-        const res = await fetch('/token');
-        if (!res.ok) throw new Error("Token failed");
-        const data = await res.json();
-
-        device = new Twilio.Device(data.token);
-
-        device.on('ready', () => {
-          statusEl.innerHTML = "✅ Ready - Waiting for call from Iran";
-          connectBtn.style.display = 'none';
-          disconnectBtn.style.display = 'inline-block';
-          log("✅ Device registered successfully");
-        });
-
-        device.on('incoming', (call) => {
-          currentCall = call;
-          incomingEl.style.display = 'block';
-          statusEl.textContent = "📞 Incoming call from Iran!";
-          log("📞 Incoming call detected");
-        });
-
-        device.on('error', (err) => {
-          statusEl.textContent = "❌ Error: " + err.message;
-          log("Error: " + err.message);
-        });
-
-        device.register();
-
-      } catch (err) {
-        statusEl.textContent = "❌ Failed to connect - " + err.message;
-        log("Connection error: " + err);
+    // Wait for Twilio SDK to load
+    function initTwilio() {
+      if (typeof Twilio === 'undefined') {
+        statusEl.textContent = "❌ Twilio SDK not loaded. Refresh page.";
         connectBtn.disabled = false;
+        return;
       }
-    });
 
-    disconnectBtn.addEventListener('click', () => {
-      if (device) device.destroy();
-      statusEl.textContent = "🔴 Disconnected";
-      connectBtn.style.display = 'inline-block';
-      disconnectBtn.style.display = 'none';
-      incomingEl.style.display = 'none';
-      log("Device disconnected");
-    });
+      connectBtn.addEventListener('click', async () => {
+        connectBtn.disabled = true;
+        statusEl.textContent = "Connecting to Twilio...";
 
-    document.getElementById('answerBtn').addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.accept();
-        incomingEl.style.display = 'none';
-        statusEl.textContent = "✅ On call";
-        log("Call answered");
-      }
-    });
+        try {
+          const res = await fetch('/token');
+          if (!res.ok) throw new Error("Token failed");
+          const data = await res.json();
 
-    document.getElementById('rejectBtn').addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.reject();
-        incomingEl.style.display = 'none';
-        statusEl.textContent = "✅ Ready - Waiting for call from Iran";
-        log("Call rejected");
-      }
-    });
+          device = new Twilio.Device(data.token);
+
+          device.on('ready', () => {
+            statusEl.innerHTML = "✅ Ready - Waiting for call from Iran";
+            connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'inline-block';
+            log("✅ Device registered successfully");
+          });
+
+          device.on('incoming', (call) => {
+            currentCall = call;
+            incomingEl.style.display = 'block';
+            statusEl.textContent = "📞 Incoming call from Iran!";
+            log("📞 Incoming call detected");
+          });
+
+          device.on('error', (err) => {
+            statusEl.textContent = "❌ Error: " + err.message;
+            log("Error: " + err.message);
+          });
+
+          device.register();
+
+        } catch (err) {
+          statusEl.textContent = "❌ Failed to connect - " + err.message;
+          log("Connection error: " + err);
+          connectBtn.disabled = false;
+        }
+      });
+    }
+
+    // Start when page loads
+    window.onload = initTwilio;
   </script>
 </body>
 </html>
