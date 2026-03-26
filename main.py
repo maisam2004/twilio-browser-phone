@@ -11,7 +11,7 @@ load_dotenv()
 
 app = FastAPI()
 
-# === IMPORTANT: API routes MUST come BEFORE static mount ===
+# API Routes
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 API_KEY_SID = os.getenv("TWILIO_API_KEY_SID")
 API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
@@ -31,12 +31,16 @@ async def voice_webhook(request: Request):
     response = VoiceResponse()
     dial = Dial()
     dial.client("friend_uk")
-    
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
 
-# Serve frontend (must be AFTER routes)
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Serve static files only for root and static folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Serve index.html at root
+@app.get("/")
+async def serve_index():
+    return HTMLResponse(open("static/index.html").read(), media_type="text/html")
 
 if __name__ == "__main__":
     import uvicorn
