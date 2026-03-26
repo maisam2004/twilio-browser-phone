@@ -11,23 +11,20 @@ load_dotenv()
 
 app = FastAPI()
 
-# API Routes must come BEFORE static mount
+# === IMPORTANT: API routes MUST come BEFORE static mount ===
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 API_KEY_SID = os.getenv("TWILIO_API_KEY_SID")
 API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.get("/token")
 async def get_token():
-    if not ACCOUNT_SID or not API_KEY_SID or not API_KEY_SECRET:
-        return JSONResponse({"error": "Missing Twilio credentials"}, status_code=500)
+    if not all([ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET]):
+        return JSONResponse({"error": "Missing credentials"}, status_code=500)
     
-    try:
-        token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
-        voice_grant = VoiceGrant(incoming_allow=True)
-        token.add_grant(voice_grant)
-        return JSONResponse({"token": token.to_jwt()})
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
+    voice_grant = VoiceGrant(incoming_allow=True)
+    token.add_grant(voice_grant)
+    return JSONResponse({"token": token.to_jwt()})
 
 @app.post("/voice")
 async def voice_webhook(request: Request):
@@ -37,7 +34,7 @@ async def voice_webhook(request: Request):
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
 
-# Serve static files (MUST be after routes)
+# Serve frontend (must be AFTER routes)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
