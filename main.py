@@ -26,19 +26,13 @@ async def get_token():
     return JSONResponse({"token": token.to_jwt()})
 
 # Allow both GET and POST for easier testing
-@app.post("/voice")
+@app.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
-    try:
-        response = VoiceResponse()
-        dial = Dial()
-        dial.client("friend_uk")
-        response.append(dial)
-        return HTMLResponse(str(response), media_type="application/xml")
-    except Exception as e:
-        print("Voice webhook error:", str(e))
-        fallback = VoiceResponse()
-        fallback.say("Sorry, there was an error connecting the call. Please try again.")
-        return HTMLResponse(str(fallback), media_type="application/xml")
+    response = VoiceResponse()
+    dial = Dial()
+    dial.client("friend_uk")
+    response.append(dial)
+    return HTMLResponse(str(response), media_type="application/xml")
 
 # Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
