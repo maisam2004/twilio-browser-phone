@@ -11,7 +11,6 @@ load_dotenv()
 
 app = FastAPI()
 
-# API Routes
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 API_KEY_SID = os.getenv("TWILIO_API_KEY_SID")
 API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
@@ -26,7 +25,8 @@ async def get_token():
     token.add_grant(voice_grant)
     return JSONResponse({"token": token.to_jwt()})
 
-@app.post("/voice")
+# Allow both GET and POST for easier testing
+@app.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
     response = VoiceResponse()
     dial = Dial()
@@ -34,13 +34,13 @@ async def voice_webhook(request: Request):
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
 
-# Serve static files only for root and static folder
+# Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve index.html at root
 @app.get("/")
 async def serve_index():
-    return HTMLResponse(open("static/index.html").read(), media_type="text/html")
+    with open("static/index.html", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
 
 if __name__ == "__main__":
     import uvicorn
