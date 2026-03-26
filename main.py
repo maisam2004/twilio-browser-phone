@@ -45,7 +45,6 @@ async def serve_index():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)'''
-
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -57,15 +56,18 @@ load_dotenv()
 
 app = FastAPI()
 
-# Serve frontend
+# Serve the frontend (simple page for now)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.post("/voice")
 async def voice_webhook(request: Request):
+    """This is called when someone dials your Twilio number"""
     response = VoiceResponse()
     dial = Dial()
-    # Forward incoming call to SIP client
+    
+    # Forward the call to the SIP client (Zoiper)
     dial.sip("sip:friend_uk@family-voip.sip.us1.twilio.com")
+    
     response.append(dial)
     return HTMLResponse(str(response), media_type="application/xml")
 
