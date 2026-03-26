@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Family Phone</title>
+  <title>Iran-UK Family Phone</title>
+  <script src="https://sdk.twilio.com/js/voice/v2/twilio.min.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; }
     .container { max-width: 420px; margin: 40px auto; }
@@ -16,7 +17,8 @@
       background: #22c55e; color: white; border: none; padding: 18px 40px; 
       font-size: 20px; border-radius: 12px; margin: 10px; cursor: pointer; width: 100%; max-width: 280px;
     }
-    .disconnect-btn { background: #ef4444; }
+    button:disabled { background: #64748b; }
+    .red { background: #ef4444; }
     #log { margin-top: 30px; text-align: left; font-size: 14px; background: #1e2937; padding: 15px; border-radius: 12px; max-height: 220px; overflow-y: auto; }
   </style>
 </head>
@@ -27,15 +29,25 @@
     <div id="status">🔴 Disconnected - Click Connect</div>
     
     <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn" class="disconnect-btn" style="display: none;">Disconnect</button>
+    <button id="disconnectBtn" class="red" style="display:none;">Disconnect</button>
+
+    <div id="incoming" style="display:none; margin-top:20px;">
+      <p><strong>📞 Incoming call from Iran!</strong></p>
+      <button id="answerBtn">Answer</button>
+      <button id="rejectBtn" class="red">Reject</button>
+    </div>
 
     <div id="log">Log will appear here...</div>
   </div>
 
   <script>
+    let device = null;
+    let currentCall = null;
+
     const statusEl = document.getElementById('status');
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
+    const incomingEl = document.getElementById('incoming');
     const logEl = document.getElementById('log');
 
     function log(msg) {
@@ -47,29 +59,67 @@
     connectBtn.addEventListener('click', async () => {
       connectBtn.disabled = true;
       statusEl.textContent = "Connecting to Twilio...";
-      log("Attempting to connect...");
 
       try {
         const res = await fetch('/token');
         if (!res.ok) throw new Error("Token failed");
-        await res.json();
+        const data = await res.json();
 
-        statusEl.innerHTML = "✅ Connected successfully!<br><br>Token is working.<br><br>Now buy a UK number to receive calls.";
-        disconnectBtn.style.display = 'inline-block';
-        log("✅ Token received successfully");
+        device = new Twilio.Device(data.token);
+
+        device.on('ready', () => {
+          statusEl.innerHTML = "✅ Ready - Waiting for call from Iran";
+          connectBtn.style.display = 'none';
+          disconnectBtn.style.display = 'inline-block';
+          log("✅ Device registered successfully");
+        });
+
+        device.on('incoming', (call) => {
+          currentCall = call;
+          incomingEl.style.display = 'block';
+          statusEl.textContent = "📞 Incoming call from Iran!";
+          log("📞 Incoming call detected");
+        });
+
+        device.on('error', (err) => {
+          statusEl.textContent = "❌ Error: " + err.message;
+          log("Error: " + err.message);
+        });
+
+        device.register();
 
       } catch (err) {
-        statusEl.textContent = "❌ Error: " + err.message;
-        log("Error: " + err.message);
+        statusEl.textContent = "❌ Failed to connect - " + err.message;
+        log("Connection error: " + err);
         connectBtn.disabled = false;
       }
     });
 
     disconnectBtn.addEventListener('click', () => {
+      if (device) device.destroy();
       statusEl.textContent = "🔴 Disconnected";
-      connectBtn.disabled = false;
+      connectBtn.style.display = 'inline-block';
       disconnectBtn.style.display = 'none';
-      log("Disconnected by user");
+      incomingEl.style.display = 'none';
+      log("Device disconnected");
+    });
+
+    document.getElementById('answerBtn').addEventListener('click', () => {
+      if (currentCall) {
+        currentCall.accept();
+        incomingEl.style.display = 'none';
+        statusEl.textContent = "✅ On call";
+        log("Call answered");
+      }
+    });
+
+    document.getElementById('rejectBtn').addEventListener('click', () => {
+      if (currentCall) {
+        currentCall.reject();
+        incomingEl.style.display = 'none';
+        statusEl.textContent = "✅ Ready - Waiting for call from Iran";
+        log("Call rejected");
+      }
     });
   </script>
 </body>
