@@ -37,6 +37,7 @@ async def voice_webhook(request: Request):
 # Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
 @app.get("/")
 async def serve_index():
     with open("static/index.html", encoding="utf-8") as f:
