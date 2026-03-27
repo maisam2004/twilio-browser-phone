@@ -2,127 +2,417 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iran-UK Family Phone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Iran-UK Family Phone | Connect Instantly</title>
+  <!-- Twilio SDK (local) -->
   <script src="/static/twilio.min.js"></script>
+  <!-- Font Awesome for icons (optional) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; }
-    .container { max-width: 420px; margin: 40px auto; }
-    h1 { font-size: 28px; margin-bottom: 30px; }
-    #status { 
-      font-size: 20px; padding: 20px; background: #1e2937; border-radius: 12px; 
-      margin: 20px 0; min-height: 80px; display: flex; align-items: center; justify-content: center;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    button { 
-      background: #22c55e; color: white; border: none; padding: 18px 40px; 
-      font-size: 20px; border-radius: 12px; margin: 10px; cursor: pointer; width: 100%; max-width: 280px;
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-    button:disabled { background: #64748b; }
-    .red { background: #ef4444; }
-    #log { margin-top: 30px; text-align: left; font-size: 14px; background: #1e2937; padding: 15px; border-radius: 12px; max-height: 250px; overflow-y: auto; }
+
+    .phone-card {
+      max-width: 500px;
+      width: 100%;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 2rem;
+      padding: 2rem 1.5rem;
+      box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #f0f9ff, #bae6fd);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .status-container {
+      background: #0f172a;
+      border-radius: 1.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      border: 1px solid #334155;
+    }
+
+    #status {
+      font-size: 1.1rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-icon {
+      font-size: 1.4rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #3b82f6;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 2rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    button i {
+      font-size: 1.1rem;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      transform: none;
+      cursor: not-allowed;
+    }
+
+    .btn-connect {
+      background: #10b981;
+    }
+    .btn-connect:hover:not(:disabled) {
+      background: #059669;
+    }
+    .btn-disconnect {
+      background: #ef4444;
+    }
+    .btn-disconnect:hover:not(:disabled) {
+      background: #dc2626;
+    }
+    .btn-answer {
+      background: #10b981;
+    }
+    .btn-reject {
+      background: #ef4444;
+    }
+    .btn-hangup {
+      background: #dc2626;
+    }
+
+    .incoming-card {
+      background: #1e293b;
+      border-radius: 1.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      border-left: 4px solid #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { border-left-color: #10b981; }
+      50% { border-left-color: #34d399; }
+      100% { border-left-color: #10b981; }
+    }
+
+    .call-timer {
+      background: #0f172a;
+      border-radius: 2rem;
+      padding: 8px 16px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      font-family: monospace;
+      text-align: center;
+      margin: 10px auto;
+      display: inline-block;
+      width: auto;
+    }
+
+    .log-area {
+      background: #0f172a;
+      border-radius: 1rem;
+      padding: 12px;
+      margin-top: 1rem;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      font-family: monospace;
+      border: 1px solid #334155;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+
+    .log-time {
+      color: #94a3b8;
+      margin-right: 8px;
+    }
+
+    .call-active {
+      background: #0f172a;
+      border-radius: 1rem;
+      padding: 12px;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.7rem;
+      margin-top: 1.5rem;
+      color: #64748b;
+    }
+
+    @media (max-width: 480px) {
+      .phone-card {
+        padding: 1.5rem 1rem;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+      #status {
+        font-size: 0.9rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🇮🇷 Family Phone 🇬🇧</h1>
-    
-    <div id="status">🔴 Disconnected - Click Connect</div>
-    
-    <button id="connectBtn">Connect</button>
-    <button id="disconnectBtn" class="red" style="display:none;">Disconnect</button>
+<div class="phone-card">
+  <h1><i class="fas fa-phone-alt"></i> Iran-UK Family Phone</h1>
 
-    <div id="incoming" style="display:none; margin-top:20px;">
-      <p><strong>📞 Incoming call from Iran!</strong></p>
-      <button id="answerBtn">Answer</button>
-      <button id="rejectBtn" class="red">Reject</button>
+  <div class="status-container">
+    <div id="status">
+      <span class="status-icon"><i class="fas fa-circle-notch fa-spin"></i></span>
+      <span>Disconnected – Click Connect</span>
     </div>
-
-    <div id="log">Log will appear here...</div>
   </div>
 
-  <script>
-    let device = null;
-    let currentCall = null;
+  <div class="button-group">
+    <button id="connectBtn" class="btn-connect"><i class="fas fa-plug"></i> Connect</button>
+    <button id="disconnectBtn" class="btn-disconnect" style="display: none;"><i class="fas fa-power-off"></i> Disconnect</button>
+  </div>
 
-    const statusEl = document.getElementById('status');
-    const connectBtn = document.getElementById('connectBtn');
-    const disconnectBtn = document.getElementById('disconnectBtn');
-    const incomingEl = document.getElementById('incoming');
-    const logEl = document.getElementById('log');
+  <div id="incoming" style="display: none;" class="incoming-card">
+    <i class="fas fa-phone-volume fa-2x" style="color:#10b981;"></i>
+    <p style="margin: 8px 0; font-weight: bold;">📞 Incoming call from Iran!</p>
+    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+      <button id="answerBtn" class="btn-answer"><i class="fas fa-check-circle"></i> Answer</button>
+      <button id="rejectBtn" class="btn-reject"><i class="fas fa-times-circle"></i> Reject</button>
+    </div>
+  </div>
 
-    function log(msg) {
-      const time = new Date().toLocaleTimeString();
-      logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
-      logEl.scrollTop = logEl.scrollHeight;
+  <div id="callControls" style="display: none;" class="call-active">
+    <div><i class="fas fa-phone-slash"></i> On a call</div>
+    <div id="callTimer" class="call-timer">00:00</div>
+    <button id="hangupBtn" class="btn-hangup" style="margin-top: 8px;"><i class="fas fa-phone-slash"></i> Hang Up</button>
+  </div>
+
+  <div class="log-area" id="log">
+    <div class="log-entry"><span class="log-time">System</span> Ready</div>
+  </div>
+  <footer><i class="fas fa-lock"></i> Secure connection | Twilio Voice</footer>
+</div>
+
+<script>
+  let device = null;
+  let currentCall = null;
+  let callStartTime = null;
+  let timerInterval = null;
+
+  const statusEl = document.getElementById('status');
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const incomingEl = document.getElementById('incoming');
+  const callControls = document.getElementById('callControls');
+  const callTimerDiv = document.getElementById('callTimer');
+  const logEl = document.getElementById('log');
+
+  function log(msg, isError = false) {
+    const time = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    if (isError) entry.style.color = '#f87171';
+    entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+    logEl.appendChild(entry);
+    entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function updateStatus(icon, text, isError = false) {
+    statusEl.innerHTML = `<span class="status-icon">${icon}</span><span>${text}</span>`;
+    if (isError) statusEl.style.color = '#f87171';
+    else statusEl.style.color = 'white';
+  }
+
+  function resetCallUI() {
+    if (timerInterval) clearInterval(timerInterval);
+    callStartTime = null;
+    callControls.style.display = 'none';
+    incomingEl.style.display = 'none';
+    if (currentCall) {
+      // ensure we don't leave dangling event handlers
+      currentCall = null;
     }
+  }
 
-    connectBtn.addEventListener('click', async () => {
-      connectBtn.disabled = true;
-      statusEl.textContent = "Connecting to Twilio...";
+  function startCallTimer() {
+    callStartTime = Date.now();
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (!currentCall || currentCall.status() !== 'open') {
+        clearInterval(timerInterval);
+        return;
+      }
+      const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      callTimerDiv.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+  }
 
-      try {
-        const res = await fetch('/token');
-        if (!res.ok) throw new Error("Token request failed");
-        const data = await res.json();
+  connectBtn.addEventListener('click', async () => {
+    connectBtn.disabled = true;
+    updateStatus('<i class="fas fa-spinner fa-pulse"></i>', 'Connecting to Twilio...');
 
-        device = new Twilio.Device(data.token, {
-          codecPreferences: ['opus', 'pcmu']
+    try {
+      const res = await fetch('/token');
+      if (!res.ok) throw new Error(`Token request failed (${res.status})`);
+      const data = await res.json();
+
+      device = new Twilio.Device(data.token, {
+        codecPreferences: ['opus', 'pcmu']
+      });
+
+      device.on('ready', () => {
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call from Iran');
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-flex';
+        log('✅ Twilio Device registered successfully');
+      });
+
+      device.on('incoming', (call) => {
+        currentCall = call;
+        incomingEl.style.display = 'block';
+        updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', '📞 Incoming call from Iran!');
+        log('📞 Incoming call received');
+
+        // set up disconnect handler for when call ends
+        currentCall.on('disconnect', () => {
+          log('Call ended');
+          resetCallUI();
+          updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
         });
+      });
 
-        device.on('ready', () => {
-          statusEl.innerHTML = "✅ Ready - Waiting for call from Iran";
-          connectBtn.style.display = 'none';
-          disconnectBtn.style.display = 'inline-block';
-          log("✅ Twilio Device registered successfully");
-        });
-
-        device.on('incoming', (call) => {
-          currentCall = call;
-          incomingEl.style.display = 'block';
-          statusEl.textContent = "📞 Incoming call from Iran!";
-          log("📞 Incoming call received");
-        });
-
-        device.on('error', (err) => {
-          statusEl.textContent = "❌ Error: " + err.message;
-          log("Device error: " + err.message);
-        });
-
-        device.register();
-
-      } catch (err) {
-        statusEl.textContent = "❌ Failed to connect - " + err.message;
-        log("Connection error: " + err);
+      device.on('error', (err) => {
+        updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `❌ Error: ${err.message}`, true);
+        log(`Device error: ${err.message}`, true);
         connectBtn.disabled = false;
-      }
-    });
+        connectBtn.style.display = 'inline-flex';
+        disconnectBtn.style.display = 'none';
+      });
 
-    disconnectBtn.addEventListener('click', () => {
-      if (device) device.destroy();
-      statusEl.textContent = "🔴 Disconnected";
-      connectBtn.style.display = 'inline-block';
-      disconnectBtn.style.display = 'none';
+      device.register();
+
+    } catch (err) {
+      updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `❌ Failed to connect: ${err.message}`, true);
+      log(`Connection error: ${err}`, true);
+      connectBtn.disabled = false;
+    }
+  });
+
+  disconnectBtn.addEventListener('click', () => {
+    if (device) {
+      device.destroy();
+      device = null;
+    }
+    updateStatus('<i class="fas fa-circle-notch"></i>', '🔴 Disconnected');
+    connectBtn.style.display = 'inline-flex';
+    disconnectBtn.style.display = 'none';
+    resetCallUI();
+    log('Device disconnected');
+    connectBtn.disabled = false;
+  });
+
+  document.getElementById('answerBtn').addEventListener('click', () => {
+    if (currentCall) {
+      currentCall.accept();
       incomingEl.style.display = 'none';
-      log("Device disconnected");
-    });
+      callControls.style.display = 'block';
+      updateStatus('<i class="fas fa-phone-alt" style="color:#10b981;"></i>', '✅ On call');
+      log('Call answered');
+      startCallTimer();
 
-    document.getElementById('answerBtn').addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.accept();
-        incomingEl.style.display = 'none';
-        statusEl.textContent = "✅ On call";
-        log("Call answered");
-      }
-    });
+      // attach hangup listener for call events
+      currentCall.on('disconnect', () => {
+        log('Call ended by remote');
+        resetCallUI();
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
+      });
+    }
+  });
 
-    document.getElementById('rejectBtn').addEventListener('click', () => {
-      if (currentCall) {
-        currentCall.reject();
-        incomingEl.style.display = 'none';
-        statusEl.textContent = "✅ Ready - Waiting for call from Iran";
-        log("Call rejected");
-      }
-    });
-  </script>
+  document.getElementById('rejectBtn').addEventListener('click', () => {
+    if (currentCall) {
+      currentCall.reject();
+      incomingEl.style.display = 'none';
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
+      log('Call rejected');
+      currentCall = null;
+    }
+  });
+
+  // Hangup button during active call
+  const hangupBtn = document.getElementById('hangupBtn');
+  hangupBtn.addEventListener('click', () => {
+    if (currentCall) {
+      currentCall.disconnect();
+      log('Call hung up by user');
+      resetCallUI();
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
+    }
+  });
+
+  // Optional: clear timer on page unload
+  window.addEventListener('beforeunload', () => {
+    if (timerInterval) clearInterval(timerInterval);
+  });
+</script>
 </body>
 </html>
