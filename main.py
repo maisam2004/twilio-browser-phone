@@ -1,4 +1,4 @@
-'''from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from twilio.jwt.access_token import AccessToken
@@ -44,7 +44,8 @@ async def serve_index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)'''
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+    '''
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -74,3 +75,4 @@ async def voice_webhook(request: Request):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    '''
