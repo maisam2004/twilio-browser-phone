@@ -3,3 +3,4 @@ uvicorn[standard]
 twilio
 python-dotenv
 PyJWT
+python-multipart
