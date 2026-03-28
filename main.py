@@ -23,26 +23,46 @@ API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
-    # Get form data, but default to empty strings if they don't exist
-    form_data = await request.form()
-    to_number = str(form_data.get("To", ""))
-    from_id = str(form_data.get("From", ""))
+    try:
+        # 1. Safely get data (use empty string as default to avoid NoneType errors)
+        if request.method == "POST":
+            form_data = await request.form()
+        else:
+            form_data = request.query_params
 
-    response = VoiceResponse()
+        to_number = str(form_data.get("To", ""))
+        from_id = str(form_data.get("From", ""))
 
-    # Only try to split if to_number is not empty
-    if from_id and isinstance(from_id, str) and "sip:" in from_id and to_number:
-        target = to_number.split('@')[0].replace('sip:', '')
-        dial = Dial(caller_id=TWILIO_NUMBER)
-        dial.number(target)
-    else:
-        # Default behavior for incoming calls or empty browser visits
-        dial = Dial()
-        dial.sip("sip:maisam2004@gmail.com@family-voip.sip.twilio.com")
+        response = VoiceResponse()
 
-    response.append(dial)
+        # 2. Check if this is an Outgoing call from your SIP app
+        # (It will have 'sip:' in the 'From' field)
+        if from_id and "sip:" in from_id:
+            # We split the number part out (e.g. sip:+1234@domain -> +1234)
+            # Use a safe split to avoid errors
+            target = to_number.split('@')[0].replace('sip:', '') if to_number else ""
+            
+            if target:
+                dial = Dial(caller_id=TWILIO_NUMBER)
+                dial.number(target)
+                response.append(dial)
+            else:
+                response.say("Invalid destination number.")
+        
+        # 3. Handle Incoming calls to your Twilio number
+        else:
+            dial = Dial()
+            # This rings your Linphone/Zoiper app
+            dial.sip("sip:maisam2004@gmail.com@family-voip.sip.twilio.com")
+            response.append(dial)
 
-    return Response(content=str(response), media_type="application/xml")
+        # Return the XML response
+        return Response(content=str(response), media_type="application/xml")
+
+    except Exception as e:
+        # This will print the EXACT error in your Render logs
+        logger.error(f"Error in voice_webhook: {e}")
+        return Response(content=f"<Response><Say>Error: {str(e)}</Say></Response>", media_type="application/xml")
 # --- Keep your existing Browser Phone endpoints below if you still want them ---
 
 @app.get("/token")
