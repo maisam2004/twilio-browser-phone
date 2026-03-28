@@ -23,33 +23,26 @@ API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
+    # Get form data, but default to empty strings if they don't exist
     form_data = await request.form()
-    to_number = form_data.get("To", "")
-    from_id = form_data.get("From", "")
+    to_number = str(form_data.get("To", ""))
+    from_id = str(form_data.get("From", ""))
 
     response = VoiceResponse()
 
-    # SCENARIO 1: OUTGOING (Call made FROM your Android app)
-    if "sip:" in from_id:
-        # Clean the number (e.g., sip:+44123@domain -> +44123)
+    # Only try to split if to_number is not empty
+    if from_id and isinstance(from_id, str) and "sip:" in from_id and to_number:
         target = to_number.split('@')[0].replace('sip:', '')
-        
-        # Dial the real phone number using your Twilio number as Caller ID
         dial = Dial(caller_id=TWILIO_NUMBER)
         dial.number(target)
-        response.append(dial)
-        logger.info(f"Outgoing SIP call to {target}")
-    
-    # SCENARIO 2: INCOMING (Someone calls your Twilio number)
     else:
+        # Default behavior for incoming calls or empty browser visits
         dial = Dial()
-        # Ring your SIP phone
         dial.sip("sip:maisam2004@gmail.com@family-voip.sip.twilio.com")
-        response.append(dial)
-        logger.info("Incoming call routed to SIP app")
+
+    response.append(dial)
 
     return Response(content=str(response), media_type="application/xml")
-
 # --- Keep your existing Browser Phone endpoints below if you still want them ---
 
 @app.get("/token")
