@@ -53,7 +53,7 @@ async def voice_webhook(request: Request):
         else:
             dial = Dial()
             # This rings your Linphone/Zoiper app
-            dial.sip("sip:maisam2004@gmail.com@family-voip.sip.twilio.com")
+            dial.sip("sip:maisam2004@family-voip.sip.twilio.com")
             response.append(dial)
 
         # Return the XML response
