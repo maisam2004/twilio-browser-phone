@@ -21,6 +21,12 @@ ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 API_KEY_SID = os.getenv("TWILIO_API_KEY_SID")
 API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
+@app.get("/token")
+async def get_token():
+    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
+    token.add_grant(VoiceGrant(incoming_allow=True))
+    return JSONResponse({"token": token.to_jwt()})
+
 @app.api_route("/voice", methods=["GET", "POST"])
 async def voice_webhook(request: Request):
     try:
@@ -54,6 +60,9 @@ async def voice_webhook(request: Request):
             dial = Dial()
             # This rings your Linphone/Zoiper app
             dial.sip("sip:maisam2004@family-voip.sip.twilio.com")
+
+            # 2. Rings your Web Browser (index.html)
+            dial.client("friend_uk")
             response.append(dial)
 
         # Return the XML response
@@ -65,11 +74,7 @@ async def voice_webhook(request: Request):
         return Response(content=f"<Response><Say>Error: {str(e)}</Say></Response>", media_type="application/xml")
 # --- Keep your existing Browser Phone endpoints below if you still want them ---
 
-@app.get("/token")
-async def get_token():
-    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
-    token.add_grant(VoiceGrant(incoming_allow=True))
-    return JSONResponse({"token": token.to_jwt()})
+
 
 @app.get("/health")
 async def health():
