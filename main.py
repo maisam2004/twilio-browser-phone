@@ -86,3 +86,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def serve_index():
     with open("static/index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+@app.get("/sw.js")
+async def service_worker():
+    with open("static/sw.js") as f:
+        return Response(content=f.read(), media_type="application/javascript")
