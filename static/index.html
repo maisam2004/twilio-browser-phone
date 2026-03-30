@@ -319,6 +319,7 @@
   }
 
   connectBtn.addEventListener('click', async () => {
+    if (!await requestMicPermission()) return;
     connectBtn.disabled = true;
     updateStatus('<i class="fas fa-spinner fa-pulse"></i>', 'Connecting to Twilio...');
 
@@ -340,16 +341,17 @@
 
       device.on('incoming', (call) => {
         currentCall = call;
+        document.getElementById('callerInfo').textContent = call.from;
         incomingEl.style.display = 'block';
         updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', '📞 Incoming call from Iran!');
         log('📞 Incoming call received');
 
         // set up disconnect handler for when call ends
-        currentCall.on('disconnect', () => {
-          log('Call ended');
+        currentCall.ondisconnect = function() {
+          log("Call ended");
           resetCallUI();
-          updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
-        });
+          updateStatus('<i class="fas fa-check-circle" style="color:#10b981"></i>', '✅Ready - Waiting for call');
+        };
       });
 
       device.on('error', (err) => {
@@ -392,11 +394,11 @@
       startCallTimer();
 
       // attach hangup listener for call events
-      currentCall.on('disconnect', () => {
+      currentCall.ondisconnect = function() {
         log('Call ended by remote');
         resetCallUI();
-        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
-      });
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
+      };
     }
   });
 
@@ -404,7 +406,7 @@
     if (currentCall) {
       currentCall.reject();
       incomingEl.style.display = 'none';
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
       log('Call rejected');
       currentCall = null;
     }
@@ -417,7 +419,7 @@
       currentCall.disconnect();
       log('Call hung up by user');
       resetCallUI();
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready – Waiting for call');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
     }
   });
 
