@@ -26,12 +26,44 @@
 
     body {
       font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.22), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(251, 191, 36, 0.16), transparent 24%),
+        radial-gradient(circle at 78% 72%, rgba(45, 212, 191, 0.18), transparent 26%),
+        radial-gradient(circle at 22% 82%, rgba(244, 114, 182, 0.16), transparent 22%),
+        linear-gradient(145deg, #020617 0%, #0f172a 38%, #111827 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -10%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      background:
+        linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, 0.045) 42% 44%, transparent 44% 100%),
+        linear-gradient(305deg, transparent 0 48%, rgba(125, 211, 252, 0.05) 48% 50%, transparent 50% 100%);
+      transform: rotate(-8deg) scale(1.1);
+      opacity: 0.85;
+    }
+
+    body::after {
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 100%);
+      background-size: 26px 26px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 92%);
+      opacity: 0.45;
     }
 
     .phone-card {
@@ -44,6 +76,8 @@
       box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
     }
 
     h1 {
@@ -236,6 +270,9 @@
     }
 
     @media (max-width: 480px) {
+      body {
+        padding: 16px;
+      }
       .phone-card {
         padding: 1.5rem 1rem;
       }
