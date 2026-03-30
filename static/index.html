@@ -81,6 +81,33 @@
       font-size: 1.4rem;
     }
 
+    .availability-note {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .availability-note.warning {
+      background: rgba(127, 29, 29, 0.35);
+      color: #fecaca;
+      border-color: rgba(248, 113, 113, 0.35);
+    }
+
+    .availability-note.info {
+      background: rgba(30, 64, 175, 0.28);
+      color: #dbeafe;
+      border-color: rgba(96, 165, 250, 0.35);
+    }
+
+    .availability-note.success {
+      background: rgba(6, 95, 70, 0.32);
+      color: #d1fae5;
+      border-color: rgba(52, 211, 153, 0.35);
+    }
+
     .button-group {
       display: flex;
       gap: 12px;
@@ -230,7 +257,10 @@
   <div class="status-container">
     <div id="status">
       <span class="status-icon"><i class="fas fa-circle-notch fa-spin"></i></span>
-      <span>Disconnected – Click Connect</span>
+      <span>Not ready to receive calls</span>
+    </div>
+    <div id="availabilityNote" class="availability-note warning">
+      Tap Connect once to activate phone service. Until then, this page cannot reliably receive calls.
     </div>
   </div>
 
@@ -265,8 +295,14 @@
   let currentCall = null;
   let callStartTime = null;
   let timerInterval = null;
+  let manualConnectInProgress = false;
+  let autoReconnectAttempted = false;
+
+  const AUTO_CONNECT_STORAGE_KEY = 'family-phone-auto-connect-enabled';
+  const RECONNECT_DELAY_MS = 5000;
 
   const statusEl = document.getElementById('status');
+  const availabilityNoteEl = document.getElementById('availabilityNote');
   const connectBtn = document.getElementById('connectBtn');
   const disconnectBtn = document.getElementById('disconnectBtn');
   const incomingEl = document.getElementById('incoming');
@@ -301,6 +337,26 @@
     else statusEl.style.color = 'white';
   }
 
+  function updateAvailabilityNote(text, tone = 'info') {
+    availabilityNoteEl.textContent = text;
+    availabilityNoteEl.className = `availability-note ${tone}`;
+  }
+
+  function hasAutoConnectEnabled() {
+    return localStorage.getItem(AUTO_CONNECT_STORAGE_KEY) === 'true';
+  }
+
+  function setAutoConnectEnabled(enabled) {
+    if (enabled) localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, 'true');
+    else localStorage.removeItem(AUTO_CONNECT_STORAGE_KEY);
+  }
+
+  function setConnectedUiState(connected) {
+    connectBtn.style.display = connected ? 'none' : 'inline-flex';
+    disconnectBtn.style.display = connected ? 'inline-flex' : 'none';
+    connectBtn.disabled = false;
+  }
+
   function resetCallUI() {
     if (timerInterval) clearInterval(timerInterval);
     callStartTime = null;
@@ -327,57 +383,134 @@
     }, 1000);
   }
 
-  connectBtn.addEventListener('click', async () => {
-    if (!await requestMicPermission()) return;
+  async function fetchToken() {
+    const res = await fetch('/token');
+    if (!res.ok) throw new Error(`Token request failed (${res.status})`);
+    return res.json();
+  }
+
+  async function refreshToken() {
+    if (!device) return;
+    try {
+      const data = await fetchToken();
+      device.updateToken(data.token);
+      log('Access token refreshed');
+    } catch (err) {
+      log(`Token refresh failed: ${err.message}`, true);
+    }
+  }
+
+  function scheduleReconnect(reason) {
+    if (!hasAutoConnectEnabled() || manualConnectInProgress || currentCall) return;
+    updateAvailabilityNote(`Trying to reconnect automatically${reason ? `: ${reason}` : ''}. If this does not work, tap Connect again.`, 'info');
+    window.setTimeout(() => {
+      if (!device && hasAutoConnectEnabled()) {
+        connectToTwilio({ manual: false }).catch(() => {});
+      }
+    }, RECONNECT_DELAY_MS);
+  }
+
+  function wireDeviceEvents() {
+    device.on('ready', () => {
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
+      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls.', 'success');
+      setConnectedUiState(true);
+      if (manualConnectInProgress) {
+        setAutoConnectEnabled(true);
+      }
+      manualConnectInProgress = false;
+      log('Twilio Device is ready');
+    });
+
+    device.on('registering', () => {
+      updateStatus('<i class="fas fa-spinner fa-pulse"></i>', 'Registering phone service...');
+      updateAvailabilityNote('Connecting your browser to Twilio so incoming calls can ring here.', 'info');
+    });
+
+    device.on('registered', () => {
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
+      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls.', 'success');
+      setConnectedUiState(true);
+      if (manualConnectInProgress) {
+        setAutoConnectEnabled(true);
+      }
+      manualConnectInProgress = false;
+      log('Twilio Device registered successfully');
+    });
+
+    device.on('unregistered', () => {
+      updateStatus('<i class="fas fa-sync-alt"></i>', 'Connection lost');
+      setConnectedUiState(false);
+      log('Device unregistered');
+      device = null;
+      scheduleReconnect('connection lost');
+    });
+
+    device.on('incoming', (call) => {
+      currentCall = call;
+      document.getElementById('callerInfo').textContent = call.from;
+      incomingEl.style.display = 'block';
+      updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', 'Incoming call');
+      updateAvailabilityNote('Incoming call is ringing now. Answer or reject below.', 'success');
+      log('Incoming call received');
+
+      currentCall.ondisconnect = function() {
+        log("Call ended");
+        resetCallUI();
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981"></i>', 'Ready to receive calls');
+        updateAvailabilityNote('Phone service is still active and waiting for the next call.', 'success');
+      };
+    });
+
+    device.on('tokenWillExpire', refreshToken);
+
+    device.on('error', (err) => {
+      updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `Connection problem: ${err.message}`, true);
+      updateAvailabilityNote('This page is not fully ready right now. Tap Connect if auto-reconnect does not recover.', 'warning');
+      log(`Device error: ${err.message}`, true);
+      setConnectedUiState(false);
+      manualConnectInProgress = false;
+      if (device && hasAutoConnectEnabled()) {
+        device = null;
+        scheduleReconnect(err.message);
+      }
+    });
+  }
+
+  async function connectToTwilio({ manual }) {
+    if (device || manualConnectInProgress) return;
+
+    manualConnectInProgress = manual;
     connectBtn.disabled = true;
-    updateStatus('<i class="fas fa-spinner fa-pulse"></i>', 'Connecting to Twilio...');
+    updateStatus('<i class="fas fa-spinner fa-pulse"></i>', manual ? 'Connecting to Twilio...' : 'Reconnecting automatically...');
+    updateAvailabilityNote(
+      manual
+        ? 'Setting up phone service. Keep this page open so it can receive calls.'
+        : 'Trying to restore phone service automatically from your previous approval.',
+      'info'
+    );
 
     try {
-      const res = await fetch('/token');
-      if (!res.ok) throw new Error(`Token request failed (${res.status})`);
-      const data = await res.json();
+      const data = await fetchToken();
 
       device = new Twilio.Device(data.token, {
         codecPreferences: ['opus', 'pcmu']
       });
-
-      device.on('ready', () => {
-        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', ' Ready – Waiting for call from Iran');
-        connectBtn.style.display = 'none';
-        disconnectBtn.style.display = 'inline-flex';
-        log('✅ Twilio Device registered successfully');
-      });
-
-      device.on('incoming', (call) => {
-        currentCall = call;
-        document.getElementById('callerInfo').textContent = call.from;
-        incomingEl.style.display = 'block';
-        updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', '📞 Incoming call from Iran!');
-        log('📞 Incoming call received');
-
-        // set up disconnect handler for when call ends
-        currentCall.ondisconnect = function() {
-          log("Call ended");
-          resetCallUI();
-          updateStatus('<i class="fas fa-check-circle" style="color:#10b981"></i>', ' Ready - Waiting for call');
-        };
-      });
-
-      device.on('error', (err) => {
-        updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `❌ Error: ${err.message}`, true);
-        log(`Device error: ${err.message}`, true);
-        connectBtn.disabled = false;
-        connectBtn.style.display = 'inline-flex';
-        disconnectBtn.style.display = 'none';
-      });
-
+      wireDeviceEvents();
       device.register();
-
     } catch (err) {
-      updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `❌ Failed to connect: ${err.message}`, true);
+      device = null;
+      manualConnectInProgress = false;
+      updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `Failed to connect: ${err.message}`, true);
+      updateAvailabilityNote('Phone service is not active yet. Tap Connect to make this page available for calls.', 'warning');
       log(`Connection error: ${err}`, true);
-      connectBtn.disabled = false;
+      setConnectedUiState(false);
     }
+  }
+
+  connectBtn.addEventListener('click', async () => {
+    if (!await requestMicPermission()) return;
+    await connectToTwilio({ manual: true });
   });
 
   disconnectBtn.addEventListener('click', () => {
@@ -385,12 +518,12 @@
       device.destroy();
       device = null;
     }
-    updateStatus('<i class="fas fa-circle-notch"></i>', '🔴 Disconnected');
-    connectBtn.style.display = 'inline-flex';
-    disconnectBtn.style.display = 'none';
+    setAutoConnectEnabled(false);
+    updateStatus('<i class="fas fa-circle-notch"></i>', 'Not ready to receive calls');
+    updateAvailabilityNote('Phone service was turned off. Tap Connect to make this page available for calls again.', 'warning');
+    setConnectedUiState(false);
     resetCallUI();
     log('Device disconnected');
-    connectBtn.disabled = false;
   });
 
   document.getElementById('answerBtn').addEventListener('click', () => {
@@ -398,7 +531,8 @@
       currentCall.accept();
       incomingEl.style.display = 'none';
       callControls.style.display = 'block';
-      updateStatus('<i class="fas fa-phone-alt" style="color:#10b981;"></i>', '✅ On call');
+      updateStatus('<i class="fas fa-phone-alt" style="color:#10b981;"></i>', 'On call');
+      updateAvailabilityNote('Call connected. You can hang up at any time.', 'success');
       log('Call answered');
       startCallTimer();
 
@@ -406,7 +540,8 @@
       currentCall.ondisconnect = function() {
         log('Call ended by remote');
         resetCallUI();
-        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
+        updateAvailabilityNote('Phone service is still active and waiting for the next call.', 'success');
       };
     }
   });
@@ -415,7 +550,8 @@
     if (currentCall) {
       currentCall.reject();
       incomingEl.style.display = 'none';
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
+      updateAvailabilityNote('Call was rejected. Phone service remains active for the next call.', 'success');
       log('Call rejected');
       currentCall = null;
     }
@@ -428,7 +564,19 @@
       currentCall.disconnect();
       log('Call hung up by user');
       resetCallUI();
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', '✅ Ready - Waiting for call');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
+      updateAvailabilityNote('Call ended. Phone service remains active for incoming calls.', 'success');
+    }
+  });
+
+  window.addEventListener('load', () => {
+    if (hasAutoConnectEnabled() && !autoReconnectAttempted) {
+      autoReconnectAttempted = true;
+      updateStatus('<i class="fas fa-sync-alt fa-spin"></i>', 'Checking phone service...');
+      updateAvailabilityNote('Trying to restore phone service automatically from your last successful connect.', 'info');
+      connectToTwilio({ manual: false }).catch(() => {});
+    } else {
+      updateAvailabilityNote('Tap Connect once to activate phone service. Until then, this page cannot reliably receive calls.', 'warning');
     }
   });
 
