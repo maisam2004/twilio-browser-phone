@@ -79,6 +79,7 @@
       position: relative;
       z-index: 1;
     }
+    
 
     h1 {
       font-size: 1.8rem;
@@ -294,10 +295,10 @@
   <div class="status-container">
     <div id="status">
       <span class="status-icon"><i class="fas fa-circle-notch fa-spin"></i></span>
-      <span>Not ready to receive calls</span>
+      <span style="color: #316636;">Not ready to receive calls | آماده دریافت تماس نیست</span>
     </div>
     <div id="availabilityNote" class="availability-note warning">
-      Tap Connect once to activate phone service. Until then, this page cannot reliably receive calls.
+      Tap Connect once to activate phone service. Until then. | برای فعال شدن تماس، یک بار روی Connect بزنید.
     </div>
   </div>
 
@@ -449,8 +450,8 @@
 
   function wireDeviceEvents() {
     device.on('ready', () => {
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
-      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls.', 'success');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls | آماده دریافت تماس');
+      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls. | می تواند تماس دریافت کند.', 'success');
       setConnectedUiState(true);
       if (manualConnectInProgress) {
         setAutoConnectEnabled(true);
@@ -465,8 +466,8 @@
     });
 
     device.on('registered', () => {
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
-      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls.', 'success');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls | آماده دریافت تماس');
+      updateAvailabilityNote('Phone service is active. This page can now receive incoming calls. | سرویس تماس فعال است و این صفحه اکنون می تواند تماس دریافت کند.', 'success');
       setConnectedUiState(true);
       if (manualConnectInProgress) {
         setAutoConnectEnabled(true);
@@ -476,7 +477,7 @@
     });
 
     device.on('unregistered', () => {
-      updateStatus('<i class="fas fa-sync-alt"></i>', 'Connection lost');
+      updateStatus('<i class="fas fa-sync-alt"></i>', 'Connection lost | ارتباط قطع شد');
       setConnectedUiState(false);
       log('Device unregistered');
       device = null;
@@ -487,15 +488,15 @@
       currentCall = call;
       document.getElementById('callerInfo').textContent = call.from;
       incomingEl.style.display = 'block';
-      updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', 'Incoming call');
-      updateAvailabilityNote('Incoming call is ringing now. Answer or reject below.', 'success');
+      updateStatus('<i class="fas fa-phone-volume fa-fade"></i>', 'Incoming call | تماس ورودی');
+      updateAvailabilityNote('Incoming call is ringing now. Answer or reject below. | تماس ورودی در حال زنگ خوردن است.', 'success');
       log('Incoming call received');
 
       currentCall.ondisconnect = function() {
         log("Call ended");
         resetCallUI();
-        updateStatus('<i class="fas fa-check-circle" style="color:#10b981"></i>', 'Ready to receive calls');
-        updateAvailabilityNote('Phone service is still active and waiting for the next call.', 'success');
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981"></i>', 'Ready to receive calls | آماده دریافت تماس');
+        updateAvailabilityNote('Phone service is still active and waiting for the next call. | سرویس تماس هنوز فعال است و منتظر تماس بعدی است.', 'success');
       };
     });
 
@@ -503,7 +504,7 @@
 
     device.on('error', (err) => {
       updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `Connection problem: ${err.message}`, true);
-      updateAvailabilityNote('This page is not fully ready right now. Tap Connect if auto-reconnect does not recover.', 'warning');
+      updateAvailabilityNote('This page is not fully ready right now. Tap Connect if auto-reconnect does not recover. | اگر اتصال خودکار برنگشت، روی Connect بزنید.', 'warning');
       log(`Device error: ${err.message}`, true);
       setConnectedUiState(false);
       manualConnectInProgress = false;
@@ -522,8 +523,8 @@
     updateStatus('<i class="fas fa-spinner fa-pulse"></i>', manual ? 'Connecting to Twilio...' : 'Reconnecting automatically...');
     updateAvailabilityNote(
       manual
-        ? 'Setting up phone service. Keep this page open so it can receive calls.'
-        : 'Trying to restore phone service automatically from your previous approval.',
+        ? 'Setting up phone service. Keep this page open so it can receive calls. | در حال فعال کردن سرویس تماس.'
+        : 'Trying to restore phone service automatically from your previous approval. | در حال تلاش برای اتصال خودکار.',
       'info'
     );
 
@@ -539,7 +540,7 @@
       device = null;
       manualConnectInProgress = false;
       updateStatus('<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i>', `Failed to connect: ${err.message}`, true);
-      updateAvailabilityNote('Phone service is not active yet. Tap Connect to make this page available for calls.', 'warning');
+      updateAvailabilityNote('Phone service is not active yet. Tap Connect to make this page available for calls. | سرویس تماس هنوز فعال نیست.', 'warning');
       log(`Connection error: ${err}`, true);
       setConnectedUiState(false);
     }
@@ -556,8 +557,8 @@
       device = null;
     }
     setAutoConnectEnabled(false);
-    updateStatus('<i class="fas fa-circle-notch"></i>', 'Not ready to receive calls');
-    updateAvailabilityNote('Phone service was turned off. Tap Connect to make this page available for calls again.', 'warning');
+    updateStatus('<i class="fas fa-circle-notch"></i>', 'Not ready to receive calls | آماده دریافت تماس نیست');
+    updateAvailabilityNote('Phone service was turned off. Tap Connect to make this page available for calls again. | سرویس تماس خاموش شد.', 'warning');
     setConnectedUiState(false);
     resetCallUI();
     log('Device disconnected');
@@ -568,8 +569,8 @@
       currentCall.accept();
       incomingEl.style.display = 'none';
       callControls.style.display = 'block';
-      updateStatus('<i class="fas fa-phone-alt" style="color:#10b981;"></i>', 'On call');
-      updateAvailabilityNote('Call connected. You can hang up at any time.', 'success');
+      updateStatus('<i class="fas fa-phone-alt" style="color:#10b981;"></i>', 'On call | در حال مکالمه');
+      updateAvailabilityNote('Call connected. You can hang up at any time. | تماس وصل شد.', 'success');
       log('Call answered');
       startCallTimer();
 
@@ -577,8 +578,8 @@
       currentCall.ondisconnect = function() {
         log('Call ended by remote');
         resetCallUI();
-        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
-        updateAvailabilityNote('Phone service is still active and waiting for the next call.', 'success');
+        updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls | آماده دریافت تماس');
+        updateAvailabilityNote('Phone service is still active and waiting for the next call. | سرویس تماس هنوز فعال است و منتظر تماس بعدی است.', 'success');
       };
     }
   });
@@ -587,8 +588,8 @@
     if (currentCall) {
       currentCall.reject();
       incomingEl.style.display = 'none';
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
-      updateAvailabilityNote('Call was rejected. Phone service remains active for the next call.', 'success');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls | آماده دریافت تماس');
+      updateAvailabilityNote('Call was rejected. Phone service remains active for the next call. | تماس رد شد و سرویس تماس هنوز فعال است.', 'success');
       log('Call rejected');
       currentCall = null;
     }
@@ -601,22 +602,23 @@
       currentCall.disconnect();
       log('Call hung up by user');
       resetCallUI();
-      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls');
-      updateAvailabilityNote('Call ended. Phone service remains active for incoming calls.', 'success');
+      updateStatus('<i class="fas fa-check-circle" style="color:#10b981;"></i>', 'Ready to receive calls | آماده دریافت تماس');
+      updateAvailabilityNote('Call ended. Phone service remains active for incoming calls. | تماس تمام شد و سرویس تماس هنوز فعال است.', 'success');
     }
   });
 
   window.addEventListener('load', () => {
     if (hasAutoConnectEnabled() && !autoReconnectAttempted) {
       autoReconnectAttempted = true;
-      updateStatus('<i class="fas fa-sync-alt fa-spin"></i>', 'Checking phone service...');
-      updateAvailabilityNote('Trying to restore phone service automatically from your last successful connect.', 'info');
+      updateStatus('<i class="fas fa-sync-alt fa-spin"></i>', 'Checking phone service... | در حال بررسی سرویس تماس');
+      updateAvailabilityNote('Trying to restore phone service automatically from your last successful connect. | در حال تلاش برای وصل شدن خودکار.', 'info');
       connectToTwilio({ manual: false }).catch(() => {});
     } else {
-      updateAvailabilityNote('Tap Connect once to activate phone service. Until then, this page cannot reliably receive calls.', 'warning');
+      updateAvailabilityNote('Tap Connect once to activate phone service |برای فعال شدن تماس، یک بار رویش  بزنید .', 'warning');
     }
   });
-
+//Tap Connect once to activate phone service.  | 
+//برای فعال شدن تماس، یک بار رویش بزنید .
   // Optional: clear timer on page unload
   window.addEventListener('beforeunload', () => {
     if (timerInterval) clearInterval(timerInterval);
