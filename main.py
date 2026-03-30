@@ -23,7 +23,7 @@ API_KEY_SECRET = os.getenv("TWILIO_API_KEY_SECRET")
 
 @app.get("/token")
 async def get_token():
-    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity="friend_uk")
+    token = AccessToken(ACCOUNT_SID, API_KEY_SID, API_KEY_SECRET, identity=os.getenv("IDENTITY"))
     token.add_grant(VoiceGrant(incoming_allow=True))
     return JSONResponse({"token": token.to_jwt()})
 
@@ -59,10 +59,10 @@ async def voice_webhook(request: Request):
         else:
             dial = Dial()
             # This rings your Linphone/Zoiper app
-            dial.sip("sip:maisam2004@family-voip.sip.twilio.com")
+            dial.sip(os.getenv("SIP_INFO"))
 
             # 2. Rings your Web Browser (index.html)
-            dial.client("friend_uk")
+            dial.client(os.getenv("IDENTITY"))
             response.append(dial)
 
         # Return the XML response
